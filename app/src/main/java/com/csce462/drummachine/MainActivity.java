@@ -23,11 +23,19 @@ import android.widget.GridView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.csce462.drummachine.MIDI.Notes;
 import com.csce462.drummachine.util.SystemUiHider;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+
+//BlueTooth
+//Analog/
+//Digital
+//Audio
+//Synthesizer
+//Station
 
 public class MainActivity extends Activity {
 	private static final boolean AUTO_HIDE = true;
@@ -47,15 +55,16 @@ public class MainActivity extends Activity {
 	private TextView majorMinorButton;
 
 	MusicPlayerThread musicPlayerThread;
-	private boolean isPlaying;
+	private boolean isPlaying = false;
 
 	private GridView buttonsGrid;
 	private GridView sequenceGrid;
 
-	private int tempo;
+	private int tempo = 60;
 	private int octave = 4;
 	private int key = 0;
-	private boolean isMajor;
+	private int scale = 0;
+	private int channel = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -130,7 +139,6 @@ public class MainActivity extends Activity {
 		tempoSlider = (SeekBar) findViewById(R.id.tempo_seekbar);
 		tempoSlider.setOnTouchListener(mDelayHideTouchListener);
 		tempoSlider.setOnSeekBarChangeListener(tempoSliderChanged);
-		tempo = 60;
 
 		tempoTV = (TextView) findViewById(R.id.tempo_tv);
 
@@ -149,7 +157,6 @@ public class MainActivity extends Activity {
 			}
 		});
 
-		isPlaying = false;
 		playButton = (TextView) findViewById(R.id.playButton);
 		playButton.getBackground().setColorFilter(
 				Color.parseColor("#11A800"), PorterDuff.Mode.MULTIPLY
@@ -178,7 +185,6 @@ public class MainActivity extends Activity {
 			}
 		});
 
-		octave = 4;
 		octaveButton = (TextView) findViewById(R.id.octaveButton);
 		octaveButton.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -188,29 +194,35 @@ public class MainActivity extends Activity {
 			}
 		});
 
-		key = 0;
 		keyButton = (TextView) findViewById(R.id.keyButton);
 		keyButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				MIDIWriter.Key[] keys = MIDIWriter.Key.values();
+				Notes.Key[] keys = Notes.Key.values();
 
 				key = (key + 1) % keys.length;
 				keyButton.setText("Key (" + keys[key].name + ")");
 			}
 		});
 
-		isMajor = true;
 		majorMinorButton = (TextView) findViewById(R.id.major_minorButton);
 		majorMinorButton.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				isMajor = !isMajor;
-				if(isMajor) {
+				scale = (scale + 1) % 3;
+				switch(scale) {
+				case 0:
 					majorMinorButton.setText("Major");
-				}
-				else {
+					channel = 0;
+					break;
+				case 1:
 					majorMinorButton.setText("Minor");
+					channel = 0;
+					break;
+				case 2:
+					majorMinorButton.setText("Perc");
+					channel = 0x9;
+					break;
 				}
 			}
 		});
@@ -363,9 +375,6 @@ public class MainActivity extends Activity {
 	private AdapterView.OnItemClickListener buttonClickListener = new AdapterView.OnItemClickListener() {
 		@Override
 		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-			int column = position % 8;
-			int row = (int) Math.floor(position / 8);
-
 			ButtonView button = (ButtonView) view;
 			button.toggle();
 		}
@@ -441,22 +450,30 @@ public class MainActivity extends Activity {
 				if(((ButtonView) buttonsGrid.getAdapter().getItem(position)).isChecked()) {
 
 					int noteValue;
-					if(isMajor) {
-						noteValue = MIDIWriter.noteValue(
-								MIDIWriter.MajorScale.values()[7-row].noteValue,
+					if(scale == 0) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Major.notes[7-row],
+								octave,
+								key
+						);
+					}
+					else if(scale == 1) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Minor.notes[7-row],
 								octave,
 								key
 						);
 					}
 					else {
-						noteValue = MIDIWriter.noteValue(
-								MIDIWriter.MinorScale.values()[7-row].noteValue,
-								octave,
-								key
-						);
+						noteValue = Notes.Percussion.values()[7-row].value;
+//						noteValue = Notes.noteValue(
+//								Notes.Scale.Major.notes[7-row],
+//								octave,
+//								key
+//						);
 					}
 
-					mf.noteOn (0, noteValue, 127);
+					mf.noteOn (channel, 0, noteValue, 127);
 				}
 			}
 
@@ -467,19 +484,27 @@ public class MainActivity extends Activity {
 
 				if(((ButtonView) buttonsGrid.getAdapter().getItem(position)).isChecked()) {
 					int noteValue;
-					if(isMajor) {
-						noteValue = MIDIWriter.noteValue(
-								MIDIWriter.MajorScale.values()[7-row].noteValue,
+					if(scale == 0) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Major.notes[7-row],
+								octave,
+								key
+						);
+					}
+					else if(scale == 1) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Minor.notes[7-row],
 								octave,
 								key
 						);
 					}
 					else {
-						noteValue = MIDIWriter.noteValue(
-								MIDIWriter.MinorScale.values()[7-row].noteValue,
-								octave,
-								key
-						);
+						noteValue = Notes.Percussion.values()[7-row].value;
+//						noteValue = Notes.noteValue(
+//								Notes.Scale.Major.notes[7-row],
+//								octave,
+//								key
+//						);
 					}
 
 					int time;
@@ -491,7 +516,7 @@ public class MainActivity extends Activity {
 						time = 0;
 					}
 
-					mf.noteOff(time, noteValue);
+					mf.noteOff(channel, time, noteValue);
 				}
 			}
 

@@ -50,19 +50,6 @@ public class MIDIWriter {
 			0x00
 	};
 
-	// A MIDI event to set the time signature. This is irrelent to
-	//  playback, but necessary for editing applications
-	static final int timeSigEvent[] = new int[] {
-			0x00,
-			0xFF,
-			0x58,
-			0x04,
-			0x04, // numerator
-			0x02, // denominator (2==4, because it's a power of 2)
-			0x30, // ticks per click (not used)
-			0x08  // 32nd notes per crotchet
-	};
-
 	// The collection of events to play, in time order
 	protected Vector<int[]> playEvents;
 
@@ -108,8 +95,7 @@ public class MIDIWriter {
 
 	/** Convert an array of integers which are assumed to contain
 	 unsigned bytes into an array of bytes */
-	protected static byte[] intArrayToByteArray (int[] ints)
-	{
+	protected static byte[] intArrayToByteArray (int[] ints) {
 		int l = ints.length;
 		byte[] out = new byte[ints.length];
 		for (int i = 0; i < l; i++)
@@ -121,113 +107,24 @@ public class MIDIWriter {
 
 
 	/** Store a note-on event */
-	public void noteOn (int delta, int note, int velocity)
+	public void noteOn (int channel, int delta, int note, int velocity)
 	{
 		int[] data = new int[4];
 		data[0] = delta;
-		data[1] = 0x90;
+		data[1] = 0x90 + channel;
 		data[2] = note;
 		data[3] = velocity;
 		playEvents.add (data);
 	}
 
-
 	/** Store a note-off event */
-	public void noteOff (int delta, int note)
-	{
+	public void noteOff (int channel, int delta, int note) {
 		int[] data = new int[4];
 		data[0] = delta;
-		data[1] = 0x80;
+		data[1] = 0x80 + channel;
 		data[2] = note;
 		data[3] = 0;
 		playEvents.add (data);
-	}
-
-	/** Store a note-off event */
-	public void channelChange(int channel)
-	{
-		int[] data = new int[4];
-		data[0] = 0xFF;
-		data[1] = 0x20;
-		data[2] = 0x01;
-		data[3] = channel;
-		playEvents.add (data);
-	}
-
-
-	public enum MajorScale {
-		note1(0),
-		note2(2),
-		note3(4),
-		note4(5),
-		note5(7),
-		note6(9),
-		note7(11),
-		note8(12);
-
-		int noteValue;
-		MajorScale(int value) {
-			noteValue = value;
-		}
-	}
-
-	public enum MinorScale {
-		note1(0),
-		note2(2),
-		note3(3),
-		note4(5),
-		note5(7),
-		note6(8),
-		note7(10),
-		note8(12);
-
-		int noteValue;
-		MinorScale(int value) {
-			noteValue = value;
-		}
-	}
-
-	public enum Key {
-		C ("C", 		0),
-		CS("C\u266F", -1),
-		CF("C\u266D", 	1),
-
-		D ("D", 		2),
-		DS("D\u266F", 	1),
-		DF("D\u266D", 	3),
-
-		E ("E", 		4),
-		ES("E\u266F", 	3),
-		EF("E\u266D", 	5),
-
-		F ("F", 		5),
-		FS("F\u266F", 	4),
-		FF("F\u266D", 	6),
-
-		G ("G", 		7),
-		GS("G\u266F", 	6),
-		GF("C\u266D", 	8),
-
-		A ("A", 		9),
-		AS("A\u266F", 	8),
-		AF("A\u266D", 	10),
-
-		B ("B", 		11),
-		BS("B\u266F", 	10),
-		BF("B\u266D", 	12);
-
-		String name;
-		int value;
-
-		Key(String name, int value) {
-			this.name = name;
-			this.value = value;
-		}
-	}
-
-
-	public static int noteValue(int note, int octave, int keyOffset) {
-		return note + ((octave+1)*12) + keyOffset;
 	}
 
 	public void tempoChange(int tempoBPM) {
@@ -280,8 +177,7 @@ public class MIDIWriter {
 	}
 
 	/** Store a program-change event at current position */
-	public void progChange (int prog)
-	{
+	public void progChange (int prog) {
 		int[] data = new int[3];
 		data[0] = 0;
 		data[1] = 0xC0;
@@ -289,43 +185,34 @@ public class MIDIWriter {
 		playEvents.add(data);
 	}
 
-
 	/** Store a note-on event followed by a note-off event a note length
 	 later. There is no delta value — the note is assumed to
 	 follow the previous one with no gap. */
-	public void noteOnOffNow (int duration, int note, int velocity)
-	{
-		noteOn (0, note, velocity);
-		noteOff (duration, note);
+	public void noteOnOffNow (int channel, int duration, int note, int velocity) {
+		noteOn(channel, 0, note, velocity);
+		noteOff(channel, duration, note);
 	}
 
-
-	public void noteSequenceFixedVelocity (int[] sequence, int velocity)
-	{
+	public void noteSequenceFixedVelocity (int channel, int[] sequence, int velocity) {
 		boolean lastWasRest = false;
 		int restDelta = 0;
-		for (int i = 0; i < sequence.length; i += 2)
-		{
+		for (int i = 0; i < sequence.length; i += 2) {
 			int note = sequence[i];
 			int duration = sequence[i + 1];
-			if (note < 0)
-			{
+			if (note < 0) {
 				// This is a rest
 				restDelta += duration;
 				lastWasRest = true;
 			}
-			else
-			{
+			else {
 				// A note, not a rest
-				if (lastWasRest)
-				{
-					noteOn (restDelta, note, velocity);
-					noteOff (duration, note);
+				if (lastWasRest) {
+					noteOn(channel, restDelta, note, velocity);
+					noteOff(channel, duration, note);
 				}
-				else
-				{
-					noteOn (0, note, velocity);
-					noteOff (duration, note);
+				else {
+					noteOn(channel, 0, note, velocity);
+					noteOff(channel, duration, note);
 				}
 				restDelta = 0;
 				lastWasRest = false;

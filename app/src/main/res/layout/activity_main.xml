@@ -22,7 +22,7 @@
 
 		<TextView
 			android:id="@+id/keyButton"
-			android:layout_width="72dp"
+			android:layout_width="96dp"
 			android:gravity="center"
 			android:layout_height="wrap_content"
 			android:layout_toRightOf="@+id/octaveButton"
@@ -56,7 +56,7 @@
 		<TextView
 			android:id="@+id/clearButton"
 			android:gravity="center"
-			android:layout_width="72dp"
+			android:layout_width="96dp"
 			android:layout_height="wrap_content"
 			android:layout_toRightOf="@+id/setTempoButton"
 			android:layout_toEndOf="@+id/setTempoButton"
@@ -69,10 +69,10 @@
 			android:gravity="center"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
+			android:layout_alignParentRight="true"
+			android:layout_alignParentEnd="true"
 			android:layout_toRightOf="@+id/clearButton"
 			android:layout_toEndOf="@+id/clearButton"
-			android:layout_toLeftOf="@+id/playButton"
-			android:layout_toStartOf="@+id/playButton"
 			android:layout_above="@+id/buttonsGrid"
 			android:text="Voice"
 			android:background="@drawable/background_button"/>
@@ -84,7 +84,9 @@
 			android:layout_height="wrap_content"
 			android:layout_alignParentRight="true"
 			android:layout_alignParentEnd="true"
-			android:layout_above="@+id/buttonsGrid"
+			android:layout_toRightOf="@+id/major_minorButton"
+			android:layout_toEndOf="@+id/major_minorButton"
+			android:layout_above="@+id/setTempoButton"
 			android:text="Play"
 			android:background="@drawable/background_button"/>
 
