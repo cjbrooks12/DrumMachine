@@ -23,6 +23,8 @@ import android.widget.GridView;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.csce462.drummachine.MIDI.Events;
+import com.csce462.drummachine.MIDI.MIDIWriter;
 import com.csce462.drummachine.MIDI.Notes;
 import com.csce462.drummachine.util.SystemUiHider;
 
@@ -320,14 +322,14 @@ public class MainActivity extends Activity {
 		int column;
 
 		private int[] colors = new int[] {
-				Color.parseColor("#67FFB1"),
-				Color.parseColor("#91E86A"),
-				Color.parseColor("#FFF674"),
-				Color.parseColor("#E8BB5E"),
-				Color.parseColor("#FF9A67"),
-				Color.parseColor("#E457E8"),
-				Color.parseColor("#895FFF"),
-				Color.parseColor("#7AB4FF")
+				0xFF67FFB1,
+				0xFF91E86A,
+				0xFFFFF674,
+				0xFFE8BB5E,
+				0xFFFF9A67,
+				0xFFE457E8,
+				0xFF895FFF,
+				0xFF7AB4FF
 		};
 
 		public ButtonView(Context context) {
@@ -434,14 +436,15 @@ public class MainActivity extends Activity {
 
 		public MusicPlayerThread() {
 			sequenceButtons = ((ButtonsAdapter) sequenceGrid.getAdapter()).getItems();
+//			createMIDIFile();
 		}
 
 		private void createMIDIFile(int column) {
 			MIDIWriter mf = new MIDIWriter();
-			mf.tempoChange(tempo);
-			mf.keySigChange(0, 0);
-			mf.timeSigChange(4, 4);
-			mf.progChange(88);
+			mf.addEvent(Events.tempoChange(tempo));
+			mf.addEvent(Events.keySignatureChange(0, 0));
+			mf.addEvent(Events.timeSignatureChange(4, 4));
+			mf.addEvent(Events.programChange(80));
 
 			//turn on appropriate notes in column
 			for(int row = 0; row < 8; row++) {
@@ -466,14 +469,9 @@ public class MainActivity extends Activity {
 					}
 					else {
 						noteValue = Notes.Percussion.values()[7-row].value;
-//						noteValue = Notes.noteValue(
-//								Notes.Scale.Major.notes[7-row],
-//								octave,
-//								key
-//						);
 					}
 
-					mf.noteOn (channel, 0, noteValue, 127);
+					mf.addEvent(Events.noteOn(channel, 0, noteValue, 127));
 				}
 			}
 
@@ -500,23 +498,18 @@ public class MainActivity extends Activity {
 					}
 					else {
 						noteValue = Notes.Percussion.values()[7-row].value;
-//						noteValue = Notes.noteValue(
-//								Notes.Scale.Major.notes[7-row],
-//								octave,
-//								key
-//						);
 					}
 
 					int time;
 					if(isFirst) {
 						isFirst = false;
-						time = MIDIWriter.CROTCHET;
+						time = Notes.NoteLength.QUARTER_NOTE.value;
 					}
 					else {
 						time = 0;
 					}
 
-					mf.noteOff(channel, time, noteValue);
+					mf.addEvent(Events.noteOff(channel, time, noteValue));
 				}
 			}
 
@@ -535,6 +528,99 @@ public class MainActivity extends Activity {
 				ioe.printStackTrace();
 			}
 		}
+
+	private void createMIDIFile() {
+		MIDIWriter mf = new MIDIWriter();
+		mf.addEvent(Events.tempoChange(tempo));
+		mf.addEvent(Events.keySignatureChange(0, 0));
+		mf.addEvent(Events.timeSignatureChange(4, 4));
+		mf.addEvent(Events.programChange(80));
+
+		//turn on appropriate notes in column
+		for(int column = 0; column < 8; column++) {
+			for(int row = 0; row < 8; row++) {
+				int position = column + row * 8;
+
+				if(((ButtonView) buttonsGrid.getAdapter().getItem(position)).isChecked()) {
+
+					int noteValue;
+					if(scale == 0) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Major.notes[7 - row],
+								octave,
+								key
+						);
+					}
+					else if(scale == 1) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Minor.notes[7 - row],
+								octave,
+								key
+						);
+					}
+					else {
+						noteValue = Notes.Percussion.values()[7 - row].value;
+					}
+
+					mf.addEvent(Events.noteOn(channel, 0, noteValue, 127));
+				}
+			}
+
+			//turn off appropriate notes in column
+			boolean isFirst = true;
+			for(int row = 0; row < 8; row++) {
+				int position = column + row * 8;
+
+				if(((ButtonView) buttonsGrid.getAdapter().getItem(position)).isChecked()) {
+					int noteValue;
+					if(scale == 0) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Major.notes[7 - row],
+								octave,
+								key
+						);
+					}
+					else if(scale == 1) {
+						noteValue = Notes.noteValue(
+								Notes.Scale.Minor.notes[7 - row],
+								octave,
+								key
+						);
+					}
+					else {
+						noteValue = Notes.Percussion.values()[7 - row].value;
+					}
+
+					int time;
+					if(isFirst) {
+						isFirst = false;
+						time = Notes.NoteLength.QUARTER_NOTE.value;
+					}
+					else {
+						time = 0;
+					}
+
+					mf.addEvent(Events.noteOff(channel, time, noteValue));
+				}
+			}
+		}
+
+
+		try {
+			File file = new File(context.getCacheDir(), "notes.mid");
+			mf.writeToFile(file);
+			Uri fileURI = Uri.fromFile(file);
+			if(mediaPlayer[0] != null) {
+				mediaPlayer[0].release();
+				mediaPlayer[0] = null;
+			}
+			mediaPlayer[0] = MediaPlayer.create(context, fileURI);
+			mediaPlayer[0].start();
+		}
+		catch(IOException ioe) {
+			ioe.printStackTrace();
+		}
+	}
 
 
 		@Override

@@ -1,6 +1,22 @@
 package com.csce462.drummachine.MIDI;
 
 public class Notes {
+	public enum NoteLength {
+		SIXTEENTH_TRIPLET(40),
+		SIXTEENTH_NOTE(4),
+		EIGHTH_TRIPLET(80),
+		EIGHTH_NOTE(8),
+		QUARTER_NOTE(16),
+		HALF_NOTE(32),
+		WHOLE_NOTE(64);
+
+		public int value;
+
+		NoteLength(int value) {
+			this.value = value;
+		}
+	}
+
 	public enum Key {
 		C ("C", 		0),  CS("C\u266F",  -1), CF("C\u266D", 	1),
 		D ("D", 		2),  DS("D\u266F", 	 1), DF("D\u266D", 	3),
